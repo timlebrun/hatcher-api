@@ -1,9 +1,8 @@
 {
-  "name": "api",
+  "name": "@timlebrun/hatcher-api",
   "version": "0.0.1",
-  "description": "",
-  "author": "",
-  "license": "MIT",
+  "description": "Small set of tabletop RPG helping modules as a deployable API",
+  "author": "Tim Lebrun <me@timlebrun.fr>",
   "scripts": {
     "tsc": "tsc",
     "prebuild": "rimraf dist",
