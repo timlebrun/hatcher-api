@@ -10,7 +10,7 @@ import {
 import { IncomingMessage } from 'http';
 import * as uuid from 'uuid';
 
-@WebSocketGateway({ path: '/sound' })
+@WebSocketGateway({ path: '/api/sound' })
 export class HatcherSoundGateway implements OnGatewayConnection, OnGatewayDisconnect {
 	private readonly logger = new Logger(this.constructor.name);
 
