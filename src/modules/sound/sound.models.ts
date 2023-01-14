@@ -7,6 +7,21 @@ export class HatcherSoundTrackModel implements IHatcherSoundTrack {
     })
 	id: string;
 
+    @ApiProperty({
+        description: 'Duration of the track in milliseconds'
+    })
+    playbackDuration: number;
+
+    @ApiProperty({
+        description: 'Date and time of the last playback start trigger event. When paused should be set to null.'
+    })
+    playbackTriggeredAt: Date | null;
+
+    @ApiProperty({
+        description: 'Playback head starting position at the time of the start trigger event',
+    })
+    playbackStartTime: number = 0;
+
 	@ApiProperty({
         description: ''
     })
@@ -51,6 +66,8 @@ export class HatcherSoundTrackModel implements IHatcherSoundTrack {
         description: ''
     })
 	fileOrginalType: string;
+
+    fileUrl: string;
 
 	@ApiProperty({
         description: ''

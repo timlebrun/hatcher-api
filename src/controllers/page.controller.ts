@@ -5,11 +5,15 @@ import { HatcherSoundService } from 'src/modules/sound/sound.service';
 export class HatcherPageController {
 	constructor(private readonly sound: HatcherSoundService) {}
 
-	@Get('sound')
-	@Render('pages/sound')
-	public async index() {
-		const tracks = await this.sound.listTracks();
+	@Get('sound/admin')
+	@Render('pages/sound/admin')
+	public async getSoundAdminPage() {
+		return {};
+	}
 
-		return { tracks };
+	@Get('sound/listener')
+	@Render('pages/sound/listener')
+	public async getSoundListenerPage() {
+		return {};
 	}
 }
