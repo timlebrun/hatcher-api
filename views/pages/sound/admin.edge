@@ -1,0 +1,535 @@
+@layout('layout/html')
+
+@set('title', '🪓 Hatcher')
+
+@section('body')
+
+<div id="hatcher-sound" class="container">
+    <h1 class="display-1">🪓 Sound</h1>
+
+    <ul id="sound-track-list" class="list-group list-group-flush"></ul>
+</div>
+
+<template lang="text/html" id="template-sound-track">
+    <li class="list-group-item bg-primary bg-opacity-50 border-0 rounded mb-1 p-0 overflow-hidden"
+        hatcher-key="trackContainer">
+        <div class="d-flex justify-content-between align-items-stretch">
+
+            <div class="hatcher-track-info d-flex flex-fill ">
+                <div class="hatcher-track-info-icon me-2 bg-black bg-opacity-25 d-flex align-items-center px-3"
+                    onclick="handleTrackEditButtonClick(this)">
+                    <span hatcher-key="trackDisplayIcon" class="display-6"></span>
+                </div>
+                <div
+                    class="hatcher-track-info-title text-contrast d-flex flex-column flex-fill align-items-start justify-content-center py-2 px-2">
+                    <div class="fw-bold fs-5" hatcher-key="trackDisplayLabel">
+                        <!-- trackDisplayLabel -->
+                    </div>
+                    <div hatcher-key="" class="hatcher-track-display-label text-opacity-50 text-small">
+                        <span hatcher-key="trackSongTitle">
+                            <!-- trackDisplayLabel -->
+                        </span>
+                        -
+                        <span hatcher-key="trackSongArtist">
+                            <!-- trackDisplayLabel -->
+                        </span>
+                    </div>
+                    <code hatcher-key="test"></code>
+                </div>
+                <div class="flex-end d-flex text-contrast flex-column justify-content-center align-items-end px-3">
+                    <span hatcher-key="trackPlaybackDurationTime"
+                        class="hatcher-track-time font-monospace opacity-75 lh-1 mb-1"></span>
+                    <span hatcher-key="trackPlaybackElapsedTime"
+                        class="hatcher-track-time font-monospace fs-4 lh-1"></span>
+                </div>
+            </div>
+
+            <div class="hatcher-track-controls bg-black bg-opacity-25 d-flex align-items-center">
+                <button hatcher-key="trackStopButton" class="btn btn-warning hatcher-stop px-2 py-2 h-100 rounded-0"
+                    onclick="handleTrackButtonClick('stop-reset', this)">
+                    <i class="bi bi-pause-fill fs-1"></i>
+                </button>
+                <button hatcher-key="trackResetButton" class="btn btn-danger hatcher-stop px-2 py-2 h-100 rounded-0"
+                    onclick="handleTrackButtonClick('stop-reset', this)">
+                    <i class="bi bi-stop-fill fs-1"></i>
+                </button>
+                <button class="btn btn-success hatcher-play px-3 py-2 h-100 rounded-0"
+                    onclick="handleTrackButtonClick('play', this)">
+                    <i class="bi bi-play-fill fs-1"></i>
+                </button>
+            </div>
+        </div>
+        <input type="range" class="hatcher-track-progress form-range progress" min="0" max="1" step="0.00001"
+            id="customRange1" onmousedown="handleProgressEvent(this, event)"
+            onmouseup="handleProgressEvent(this, event)" oninput="handleProgressEvent(this, event)">
+        {{-- <div class="progress bg-white bg-opacity-25 rounded-0" style="height:10px;">
+            <div class="progress-bar bg-primary" role="progressbar" aria-valuenow="0" aria-valuemin="0"
+                aria-valuemax="1"></div>
+        </div> --}}
+        <audio></audio>
+
+        <!-- Modal -->
+        <div class="hatcher-track-edit-modal modal fade" tabindex="-1" aria-labelledby="exampleModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary bg-opacity-25">
+                        <div>
+                            <h1 class="modal-title fs-5" id="exampleModalLabel">
+                                Edit <span hatcher-key="trackDisplayLabel"></span>
+                            </h1>
+                            <p class="mb-0 text-small opacity-50">
+                                #<span hatcher-key="trackId"></span>
+                            </p>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body bg-primary bg-opacity-25">
+
+                        <div class="input-group">
+                            <button class="btn btn-primary bg-primary form-control fs-3"><span
+                                    hatcher-key="trackDisplayIcon"></span></button>
+
+                            <input hatcher-key="trackDisplayLabel" class="form-control form-control-lg" type="text"
+                                placeholder="Display Label" onchange="handleTrackInputUpdate(this, 'displayLabel')">
+                            <button class="btn btn-primary bg-primary form-control"><span
+                                    hatcher-key="trackDisplayColor"></span></button>
+                        </div>
+                        // displaylabel
+                        // displaycolor
+                        // displayicon
+
+                        <hr />
+
+                        // song title
+                        // song artist
+
+                        <hr />
+
+                        // file info
+
+                        <span hatcher-key="trackDisplayColor"></span>
+                    </div>
+                    <div class="modal-footer bg-primary bg-opacity-25">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary">Save changes</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </li>
+</template>
+
+<script src="/script.js"></script>
+<script>
+    const url = new URL(window.location);
+
+    const websocket = new WebSocket(`ws://${url.host}/api/sound`);
+
+    let serverClockDelta = 0;
+
+    const playButtons = document.getElementsByClassName('hatcher-play');
+    websocket.addEventListener('message', function(message) {
+        console.debug('WS', message);
+
+        if (!message.data) return;
+
+        console.debug('WS', 'RECEIVED', message.data);
+
+        const messagePayload = JSON.parse(message.data);
+        if (!messagePayload) return;
+
+        // Update clock delta on message
+        if (messagePayload.clock) serverClockDelta = Date.now() - messagePayload.clock;
+
+        if (messagePayload.event === 'sound::track:updated')
+            return handleServerTrackUpdate(
+                messagePayload.data.target,
+                messagePayload.data.payload,
+            );
+    });
+
+    websocket.addEventListener('open', () => {
+        console.debug('WS', 'CONNECTED');
+    })
+
+    /**
+     * @var HTMLTemplateElement
+     */
+    const trackTemplateElement = document.querySelector(`template#template-sound-track`);
+    // const trackElementTemplate = issueElementTemplate(trackElement);
+
+    const trackListElement = document.querySelector('ul');
+    
+    (async () => {
+        const tracks = await fetchSoundTracks();
+        
+        for (const track of tracks) {
+            // console.log({ track });
+            const trackElement = makeHatcherTrackTemplate(track);
+            trackListElement.appendChild(trackElement);
+        }
+
+        console.log(trackListElement.children);
+
+        scheduleRenderer(draw);
+    })();
+
+    function makeHatcherTrackTemplate(track) {
+        const trackFragment = trackTemplateElement.content.cloneNode(true);
+        const trackElement = trackFragment.firstElementChild;
+
+        fillTrackElement(trackElement, track);
+
+        return trackElement;
+    }
+
+    function fillTrackElement(element, track) {
+        if (!element.track) element.track = track; // Just for debug purposes
+        else Object.assign(element.track, track);
+
+
+        if (track.displayColor) {
+            const trackDisplayColorRgb = hexToRgb(track.displayColor.replace('#', ''));
+
+            element.style.setProperty('--bs-primary', track.displayColor);
+            element.style.setProperty('--bs-primary-rgb', `${trackDisplayColorRgb.red},${trackDisplayColorRgb.green},${trackDisplayColorRgb.blue}`);
+    
+            element.style.setProperty('--hbc-background-red', trackDisplayColorRgb.red);
+            element.style.setProperty('--hbc-background-green', trackDisplayColorRgb.green);
+            element.style.setProperty('--hbc-background-blue', trackDisplayColorRgb.blue);
+        }
+
+        if (track.id) {
+            maybeUpdateHatcherValue(element, 'trackId', track.id);
+            element.dataset.hatcherTrackId = track.id;
+        }
+        if (track.displayIcon) maybeUpdateHatcherValue(element, 'trackDisplayIcon', track.displayIcon);
+        if (track.displayLabel) maybeUpdateHatcherValue(element, 'trackDisplayLabel', track.displayLabel);
+        if (track.displayColor) maybeUpdateHatcherValue(element, 'trackDisplayColor', track.displayColor);
+        if (track.songArtist) maybeUpdateHatcherValue(element, 'trackSongArtist', track.songArtist);
+        if (track.songTitle) maybeUpdateHatcherValue(element, 'trackSongTitle', track.songTitle);
+
+        if (track.playbackDuration) maybeUpdateHatcherValue(element, 'trackPlaybackDurationTime', formatPlaybackTime(track.playbackDuration));
+
+        console.log({ track });
+    }
+
+    function makeWebsocketPayload(event, data = undefined) {
+        const payload = { event, data };
+        const payloadString = JSON.stringify(payload);
+
+        console.debug('WS', payloadString);
+
+        return payloadString;
+    }
+
+    function handleTrackButtonClick(action, element) {
+        const elementParent = element.closest('li');
+        if (!elementParent) return;
+
+        if (action === 'play') {
+            elementParent.dataset.hatcherTrackLastAction = 'play';
+            const messagePayload = makeWebsocketPayload(
+                `sound::track:${action}`,
+                { target: elementParent.dataset.hatcherTrackId },
+            ); 
+
+            websocket.send(messagePayload);
+        }
+
+        if (action === 'stop-reset') {
+            if (elementParent.dataset.hatcherTrackLastAction === 'stop') {
+                elementParent.dataset.hatcherTrackLastAction = 'reset';
+                const messagePayload = makeWebsocketPayload(
+                    `sound::track:reset`,
+                    { target: elementParent.dataset.hatcherTrackId },
+                ); 
+
+                websocket.send(messagePayload);
+
+            }
+            else {
+                elementParent.dataset.hatcherTrackLastAction = 'stop';
+                const messagePayload = makeWebsocketPayload(
+                    `sound::track:stop`,
+                    { target: elementParent.dataset.hatcherTrackId },
+                ); 
+
+                websocket.send(messagePayload);
+            }
+        }
+
+    }
+
+    function handleProgressEvent(element, event) {
+        const elementParent = element.closest('li');
+        if (!elementParent) return;
+
+        if (event.type === 'mousedown') element.grabbed = true;
+
+        if (event.type === 'mouseup') {
+            const messagePayload = makeWebsocketPayload(
+                `sound::track:scroll`,
+                {
+                    target: elementParent.dataset.hatcherTrackId,
+                    payload: { ratio: +element.value },
+                },
+            ); 
+
+            websocket.send(messagePayload);
+
+            setTimeout(() => element.grabbed = false, 100); // 100ms timeout
+        }
+
+        if (event.type === 'input') {
+            const scrolledTime = formatPlaybackTime(elementParent.track.playbackDuration, +element.value);
+            maybeUpdateHatcherValue(elementParent, 'trackPlaybackElapsedTime', scrolledTime);
+        }
+    }
+
+    function handleTrackInputUpdate(element, property) {
+        const elementParent = element.closest('li');
+        if (!elementParent) return;
+
+        const value = element.value;
+        const payload = makeWebsocketPayload(
+            'sound::track:update',
+            { target: elementParent.dataset.hatcherTrackId, data: { [property]: value } },
+        );
+
+        console.log({ payload });
+
+        websocket.send(payload);
+    }
+
+    function handleTrackEditButtonClick(element) {
+        const elementParent = element.closest('li');
+        if (!elementParent) return;
+
+        const modalElement = elementParent.querySelector('.hatcher-track-edit-modal');
+        if (!modalElement) return;
+
+        const bootstrapModal = new bootstrap.Modal(modalElement, {})
+
+        bootstrapModal.show();
+    }
+
+    function handleServerTrackUpdate(target, data) {
+        const trackElement = document.querySelector(`*[data-hatcher-track-id="${target}"]`);
+        if (!trackElement) return;
+
+        fillTrackElement(trackElement, data);
+
+        Object.assign(trackElement.track, data);
+    }
+
+    async function fetchSoundTracks() {
+        const trackResponse = await fetch('/api/sound/tracks');
+
+        return trackResponse.json();
+    }
+
+    function maybeUpdateHatcherValue(element, key, value) {
+        const elementNodes = element.querySelectorAll(`*[hatcher-key="${key}"]`);
+        if (!elementNodes) return false;
+
+        for (const elementNode of elementNodes) {
+            // console.log(elementNode.textContent, value)
+            if (elementNode.textContent !== value) elementNode.textContent = value;
+            if (elementNode.value !== value) elementNode.value = value;
+        }
+        
+        return elementNodes.length;
+    }
+
+    function maybeUpdateHatcherInput(element, key, value) {
+        const elementNodes = element.querySelectorAll(`*[hatcher-key="${key}"]`);
+        if (!elementNodes) return false;
+
+        for (const elementNode of elementNodes) {
+            // console.log(elementNode.textContent, value)
+            if (elementNode.value !== value) elementNode.value = value;
+        }
+        
+        return elementNodes.length;
+    }
+
+    function maybeToggleClassWhether(element, className, shouldBeActive) {
+        const elementClassActive = element.classList.contains(className);
+        if (elementClassActive != shouldBeActive) element.classList.toggle(className);
+        
+        return true;
+    }
+
+    function maybeToggleHatcherClassWhether(element, key, className, shouldBeActive) {
+        const elementNodes = element.querySelectorAll(`*[hatcher-key="${key}"]`);
+        if (!elementNodes) return false;
+
+        for (const elementNode of elementNodes) {
+            maybeToggleClassWhether(elementNode, className, shouldBeActive);
+
+            const elementClassActive = elementNode.classList.contains(className);
+            if (elementClassActive != shouldBeActive) elementNode.classList.toggle(className);
+        }
+        
+        return elementNodes.length;
+    }
+
+    function draw() {
+        const trackElements = trackListElement.querySelectorAll('li');
+
+        for (const trackElement of trackElements) {
+            const progressBarElement = trackElement.querySelector('.hatcher-track-progress');
+
+            const playbackProcess = computeTrackPlaybackProgress(trackElement.track);
+
+            if (progressBarElement && playbackProcess) {
+                if (!progressBarElement.grabbed) {
+                    progressBarElement.value = playbackProcess.progress;
+                    maybeUpdateHatcherValue(trackElement, 'trackPlaybackElapsedTime', playbackProcess.time);
+                    maybeToggleClassWhether(trackElement, 'bg-opacity-75', playbackProcess.playing);
+                }
+
+                maybeToggleHatcherClassWhether(trackElement, 'trackPlaybackElapsedTime', 'text-success', progressBarElement.grabbed);
+
+                const trackIsReset = (!playbackProcess.playing) && (playbackProcess.progress === 0);
+                maybeToggleHatcherClassWhether(trackElement, 'trackStopButton', 'd-none', trackIsReset)
+                maybeToggleHatcherClassWhether(trackElement, 'trackResetButton', 'd-none', !trackIsReset)
+            }
+
+            // maybeUpdateHatcherValue(trackElement, 'test', JSON.stringify(playbackProcess));
+            
+            // trackElement.querySelector('.hatcher-track-display-icon').textContent = trackElement.dataset.hatcherTrackDisplayIcon;
+            // trackElement.querySelector('.hatcher-track-display-label').textContent = trackElement.dataset.hatcherTrackDisplayLabel;
+            // trackElement.querySelector('.hatcher-track-display-color').textContent = trackElement.dataset.hatcherTrackDisplayColor;
+        }
+    }
+
+    function computeTrackPlaybackProgress(track) {
+        // console.log({ track });
+        // no duration = no progress
+        if (!track.playbackDuration) return null;
+
+        // If track is not playing, progress is just the startTime / duration
+        if (!track.playbackTriggeredAt) {
+            const progress = track.playbackStartTime / track.playbackDuration;
+            const time = formatPlaybackTime(track.playbackDuration, progress);
+            return { playing: false, progress, time };
+        }
+
+        // If track is playing, get the time since playing started...
+        const currentServerTimestamp = getCurrentServerTimestamp();
+        const trackPlaybackTriggerTimestamp = Date.parse(track.playbackTriggeredAt);
+        const totalElapsedTime = currentServerTimestamp - trackPlaybackTriggerTimestamp;
+
+        const progress = Math.min((totalElapsedTime + track.playbackStartTime) / track.playbackDuration, 1);
+        const time = formatPlaybackTime(track.playbackDuration, progress);
+
+        return {
+            playing: progress < 1 ? true : false, 
+            progress,
+            time,
+        };
+    }
+
+    function formatPlaybackTime(playbackDuration, progress = 1) {
+        const playbackElapsedTime = progress * playbackDuration;
+        const proxyDate = new Date(playbackElapsedTime); // round to nearest second
+
+        const formattedSeconds = proxyDate.getUTCSeconds().toString().padStart(2, '0');
+        const formattedFrames = proxyDate.getUTCMilliseconds().toString().substring(0, 2).padStart(2, '0');
+
+        let outputTime = `${formattedSeconds}.${formattedFrames}`;
+
+        if (playbackDuration > 60000) {
+            const formattedMinutes = proxyDate.getUTCMinutes().toString().padStart(2, '0');
+            outputTime = `${formattedMinutes}:${outputTime}`;
+        }
+
+        if (playbackDuration > 60000000) {
+            const formattedHours = proxyDate.getUTCHours().toString();
+            outputTime = `${formattedHours}:${outputTime}`;
+        }
+
+        return outputTime;
+    }
+
+    async function scheduleRenderer(renderer) {
+        await renderer();
+        window.requestAnimationFrame(async () => await scheduleRenderer(renderer));
+    }
+
+    function getCurrentServerTimestamp() { // in milliseconds
+        const date = Date.now();
+
+        return date + serverClockDelta;
+    }
+
+    function hexToRgb(hex){
+        // console.log({ hex}, hex.length);
+        if (hex.length != 6) throw "Only six-digit hex colors are allowed.";
+
+        const hexMatch = hex.match(/.{1,2}/g);
+
+        return {
+            red: parseInt(hexMatch[0], 16),
+            green: parseInt(hexMatch[1], 16),
+            blue: parseInt(hexMatch[2], 16),
+        };
+}
+
+</script>
+
+<style>
+    .progress {
+        --bs-progress-bar-transition: width 0.1s ease;
+    }
+
+    :root {
+        --hbc-threshold: .5;
+        --hbc-opacity: 1;
+
+        --hbc-background-red: 255;
+        --hbc-background-green: 255;
+        --hbc-background-blue: 255;
+
+        transition: background-color 0.5s ease;
+    }
+
+    .text-contrast {
+        --hbc-lightness-red: calc(var(--hbc-background-red) * 0.2126 * (1 - var(--hbc-opacity)));
+        --hbc-lightness-green: calc(var(--hbc-background-green) * 0.7152 * (1 - var(--hbc-opacity)));
+        --hbc-lightness-blue: calc(var(--hbc-background-blue) * 0.0722 * (1 - var(--hbc-opacity)));
+        --hbc-lightness-sum: calc(var(--hbc-lightness-red) + var(--hbc-lightness-green) + var(--hbc-lightness-blue));
+
+        --hbc-lightness: calc(var(--hbc-lightness-sum) / 255);
+
+        --hbc-color: hsl(0, 0%, calc((var(--hbc-lightness) - var(--hbc-threshold)) * -10000000%));
+
+        color: var(--hbc-color);
+    }
+
+    .bg-opacity-10 {
+        --hbc-opacity: .1;
+    }
+
+    .bg-opacity-25 {
+        --hbc-opacity: .25;
+    }
+
+    .bg-opacity-50 {
+        --hbc-opacity: .5;
+    }
+
+    .bg-opacity-75 {
+        --hbc-opacity: .75;
+    }
+
+    .bg-opacity-100 {
+        --hbc-opacity: 1;
+    }
+</style>
+
+@end
