@@ -1,0 +1,177 @@
+@layout('layout/html')
+
+@set('title', '🪓 Hatcher - Tchat')
+
+@section('head')
+@super
+
+<script defer src="/alpine.js"></script>
+
+<style>
+	.pre { white-space: pre; }
+</style>
+@end
+
+@section('body')
+
+<div id="hatcher-sound" class="container min-vh-100 position-relative" x-data>
+	<h1 class="display-1">🪓 Tchat</h1>
+
+	<p class="text-white" x-text="$store.tchat.messages.length"></p>
+
+	<div id="tchat-messages">
+		<ol>
+			<template x-for="message in $store.tchat.messages">
+
+				<li class="tchat-message tchat-message-text text-white d-flex mb-3">
+					<div class="me-3">
+						<img src="" alt="" class="rounded-circle bg-light" style="height: 80px; width: 80px;">
+					</div>
+					<div class="d-flex flex-column">
+						<div class="tchat-message-content bg-primary d-inline-block py-2 px-3 rounded mw-60 mb-1" x-data="{ paragraphs: message.content.text.split('\n\n') }">
+							<template x-for="paragraph in paragraphs">
+								<p x-data="{ haha: paragraph.replace('\n', '<br />') }" x-html="haha"></p>
+							</template>
+						</div>
+
+						<div class="tchat-message-content bg-primary d-inline-block py-2 px-3 rounded mw-60">
+							<p>Deuxième message pas longtemps après</p>
+						</div>
+
+						<time class="opacity-75 text-small" x-data="{ date: dateFormatter.format(new Date(message.createdAt)) }" x-text="date">mercredi à 20h30</time>
+					</div>
+				</li>
+
+			</template>
+
+			<li class="tchat-message tchat-message-text text-white d-flex justify-content-end">
+				<div class="d-flex flex-column align-items-end">
+					<div class="tchat-message-content bg-light text-black d-inline-block py-2 px-3 rounded mw-60 mb-1">
+						<p>Bonjour c'est une phrase haha super</p>
+						<p>Lorem ipsum dolor, sit amet consectetur adipisicing elit. Eaque accusantium autem ratione
+							pariatur, numquam facilis placeat? Similique modi beatae, est autem placeat, labore vero
+							officia nobis, corrupti id numquam iure?</p>
+						<p>Bonjour message salut</p>
+					</div>
+
+					<div class="tchat-message-content bg-light text-black d-inline-block py-2 px-3 rounded mw-60">
+						<p>Deuxième message pas longtemps après</p>
+					</div>
+
+					<time class="opacity-75 text-small">mercredi à 20h30</time>
+				</div>
+
+			</li>
+		</ol>
+	</div>
+
+	<div id="tchat-control" class="fixed-bottom p-3">
+		<div class="input-group">
+			<textarea id="tchat-input" type="text" class="form-control bg-dark text-white" rows="1"
+				max-rows="-1"></textarea>
+			<button class="btn btn-outline-secondary" type="button">Button</button>
+		</div>
+	</div>
+</div>
+
+<style>
+	.mw-60 {
+		max-width: 60%;
+	}
+
+	.tchat-message {}
+
+	.tchat-message-text .tchat-message-content p:last-child {
+		margin-bottom: 0;
+	}
+</style>
+
+<script>
+	const url = new URL(window.location);
+
+	const tchatInputElement = document.getElementById('tchat-input');
+
+	const browserLanguage = 'fr-FR';
+	// const browserLanguage = navigator.languages[0] || navigator.language;
+	// console.log({ browserLanguage });
+
+	const relativeTimeFormatter = new Intl.RelativeTimeFormat(browserLanguage, { style: 'short' });
+	const dateFormatter = new Intl.DateTimeFormat(browserLanguage, { weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: 'numeric' });
+
+	Object.assign(window, { relativeTimeFormatter, dateFormatter });
+
+	async function startup() {
+		tchatInputElement.setAttribute('style', `height: ${tchatInputElement.scrollHeight}px;overflow-y:hidden`);
+		tchatInputElement.addEventListener('input', function() {
+			this.style.height = 0;
+			this.style.height = this.scrollHeight + "px";
+		});
+
+		const websocket = new WebSocket(`ws://${url.host}/api/tchat`);
+
+		Alpine.store('tchat', {
+			init() {
+				console.log(this);
+			},
+			messages: [],
+		});
+
+		const tchatStore = Alpine.store('tchat');
+
+		tchatInputElement.addEventListener('keypress', (event) => {
+			if (event.key !== "Enter") return;
+			if (event.shiftKey) return;
+
+			event.preventDefault(); // if user just ENTERed, stop the browser doing anything weird
+
+			if (event.target.value === '') return; // If nothing in the input, just go on with our lives
+
+			event.target.readOnly = true;
+			event.target.disabled = true;
+
+			event.target.style.height = 0;
+			event.target.style.height = (event.target.scrollHeight) + "px";
+
+			sendWebsocketTchatMessageText(event.target.value);
+
+			event.target.value = '';
+
+			event.target.readOnly = false;
+			event.target.disabled = false;
+		});
+
+		// TODO: aggregate threads
+
+		function makeWebsocketPayload(event, data = undefined) {
+			const payload = { event, data };
+			const payloadString = JSON.stringify(payload);
+
+			console.debug('WS', payloadString);
+
+			return payloadString;
+		}
+
+		function sendWebsocketTchatMessageText(value) {
+			const websocketPayload = makeWebsocketPayload('tchat::command', value);
+			websocket.send(websocketPayload);
+		}
+
+		function handleWebsocketTchatMessage(message) {
+			tchatStore.messages.push(message);
+		}
+
+		websocket.addEventListener('message', function(websocketMessage) {
+			console.debug('WS >', websocketMessage);
+
+			const websocketMessageData = JSON.parse(websocketMessage.data);
+
+			if (websocketMessageData.event === 'tchat::message:created')
+				return handleWebsocketTchatMessage(websocketMessageData.data);
+		});
+	};
+
+	document.addEventListener('alpine:init', startup);
+
+</script>
+
+@end
