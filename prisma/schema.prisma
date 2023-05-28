@@ -9,3 +9,23 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model HatcherTchatChannel {
+  slug  String @id
+  label String
+
+  messages HatcherTchatMessage[]
+}
+
+model HatcherTchatMessage {
+  id Int @id @default(autoincrement())
+
+  channelSlug String?
+
+  type String
+  content Json
+
+  createdAt DateTime @default(now())
+
+  channel HatcherTchatChannel? @relation(fields: [channelSlug], references: [slug])
+}
