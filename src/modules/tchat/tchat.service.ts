@@ -1,29 +1,81 @@
-import * as uuid from 'uuid';
-import { IHatcherTchatMessage } from './tchat.interface';
+import { IHatcherTchatMessage, IHatcherTchatMessageType } from './tchat.interface';
+import { HatcherDatabaseService, Prisma } from '../database';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 
-export class HatcherTchatService {
-	private readonly messages: IHatcherTchatMessage[] = [];
+@Injectable()
+export class HatcherTchatService implements OnModuleInit {
 	private readonly messageListeners: IHatcherChatServiceMessageListener[] = [];
 
-	public listMessages() {
-		return this.messages;
+	constructor(private readonly database: HatcherDatabaseService) {
+		this.database.subscriber.notifications.on('tchat/messages', m => this.handleDatabaseMessageEvent(m));
 	}
 
-	public postMessage(payload: IHatcherChatServiceMessagePayload) {
-		const message: IHatcherTchatMessage = {
-			id: uuid.v1(),
-			...payload,
-			createdAt: new Date(),
-		};
+	async onModuleInit() {
+		await this.database.subscriber.listenTo('tchat/messages');
+	}
 
-		this.messages.push(message);
-		for (const listener of this.messageListeners) listener(message);
+	/**
+	 * Handles incoming notification from the database
+	 *
+	 * should contain JSON-encoded message payload
+	 *
+	 * @param message
+	 */
+	private handleDatabaseMessageEvent(message: unknown) {
+		const messageData = JSON.parse(message as any);
 
-		return message;
+		for (const listener of this.messageListeners) listener(messageData as IHatcherTchatMessage);
+	}
+
+	private async dispatchDatabaseMessageEvent(message: IHatcherTchatMessage) {
+		await this.database.subscriber.notify('tchat/messages', JSON.stringify(message));
+	}
+
+	/**
+	 * Searches through all messages
+	 *
+	 * @param where
+	 * @returns
+	 */
+	public searchMessages(where: Prisma.HatcherTchatChannelWhereInput = {}) {
+		return this.database.hatcherTchatMessage.findMany({ where });
+	}
+
+	/**
+	 * Stores and dispatches a message
+	 *
+	 * @param payload
+	 * @returns
+	 */
+	public async postMessage(payload: IHatcherChatServiceMessagePayload) {
+		const databaseMessage = await this.database.hatcherTchatMessage.create({
+			data: payload,
+		});
+
+		this.dispatchDatabaseMessageEvent(databaseMessage as IHatcherTchatMessage);
+
+		return databaseMessage;
 	}
 
 	public onMessage(listener: IHatcherChatServiceMessageListener) {
 		this.messageListeners.push(listener);
+	}
+
+	/**
+	 * Parses a string from the client and returns a parsed payload
+	 *
+	 * @param command The input string command
+	 * @returns The parsed and interpreted command
+	 */
+	public static parseCommand(command: string): IHatcherChatServiceMessagePayload | null {
+		return {
+			type: IHatcherTchatMessageType.text,
+			content: { text: command },
+			// author: null,
+			// recipient: '*',
+		};
+
+		return null;
 	}
 }
 

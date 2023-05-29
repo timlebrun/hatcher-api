@@ -1,12 +1,17 @@
 export class IHatcherTchatMessage {
-	id: string;
+	id: number;
 
-	type: string;
+	type: IHatcherTchatMessageType | string; // TEXT / ROLL
 
-	author: string;
-	recipient: string;
+	// author: string; // hatcher://users/ ?
+	// recipient: string; // hatcher://groups/ ?
 
 	content: { [key: string]: any };
 
 	createdAt: Date;
+}
+
+export enum IHatcherTchatMessageType {
+	text = 'TEXT',
+	roll = 'ROLL',
 }

@@ -7,7 +7,7 @@ export class HatcherApiTchatController {
 
 	@Get('messages')
 	listMessages() {
-		return this.tchat.listMessages();
+		return this.tchat.searchMessages();
 	}
 
 	@Post('messages')
