@@ -1,9 +1,8 @@
 import { Module } from '@nestjs/common';
 import { HatcherDatabaseService } from './database.service';
-import { HatcherDatabaseEventService } from './services/event.service';
 
 @Module({
-    providers: [HatcherDatabaseService, HatcherDatabaseEventService],
-    exports: [HatcherDatabaseService],
+	providers: [HatcherDatabaseService],
+	exports: [HatcherDatabaseService],
 })
 export class HatcherDatabaseModule {}

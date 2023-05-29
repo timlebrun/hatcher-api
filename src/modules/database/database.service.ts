@@ -1,22 +1,23 @@
 import { BeforeApplicationShutdown, Injectable, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
-import { HatcherDatabaseEventService } from './services/event.service';
+import createPostgresSubscriber from 'pg-listen';
+
+const { DATABASE_URL } = process.env;
 
 @Injectable()
 export class HatcherDatabaseService extends PrismaClient
 	implements OnModuleInit, BeforeApplicationShutdown {
 
-	constructor(
-        public readonly events: HatcherDatabaseEventService,
-    ) {
-		super();
-	}
+	public readonly subscriber = createPostgresSubscriber({
+		connectionString: DATABASE_URL,
+	});
 
 	/**
 	 * Connects the Client to the database on startup
 	 */
 	public async onModuleInit() {
 		await this.$connect();
+		await this.subscriber.connect();
 	}
 
 	/**
@@ -24,5 +25,6 @@ export class HatcherDatabaseService extends PrismaClient
 	 */
 	public async beforeApplicationShutdown() {
 		await this.$disconnect();
+		await this.subscriber.close();
 	}
 }
