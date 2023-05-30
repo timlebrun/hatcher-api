@@ -5,7 +5,8 @@
 @section('head')
 @super
 
-<script defer src="/alpine.js"></script>
+<script src="/assets/script.js"></script>
+<script src="/assets/tchat/channel.js"></script>
 
 <style>
 	.pre { white-space: pre; }
@@ -100,6 +101,11 @@
 
 	Object.assign(window, { relativeTimeFormatter, dateFormatter });
 
+	const socket = new ReconnectingWebSocket(`ws://${url.host}/api/tchat`);
+	const wrapper = new HatcherTchatSocketWrapper(socket);
+
+	const testMessages = [];
+
 	async function startup() {
 		tchatInputElement.setAttribute('style', `height: ${tchatInputElement.scrollHeight}px;overflow-y:hidden`);
 		tchatInputElement.addEventListener('input', function() {
@@ -107,12 +113,8 @@
 			this.style.height = this.scrollHeight + "px";
 		});
 
-		const websocket = new WebSocket(`ws://${url.host}/api/tchat`);
-
 		Alpine.store('tchat', {
-			init() {
-				console.log(this);
-			},
+			init() {},
 			messages: [],
 		});
 
@@ -132,7 +134,7 @@
 			event.target.style.height = 0;
 			event.target.style.height = (event.target.scrollHeight) + "px";
 
-			sendWebsocketTchatMessageText(event.target.value);
+			wrapper.sendCommand(event.target.value);
 
 			event.target.value = '';
 
@@ -140,37 +142,16 @@
 			event.target.disabled = false;
 		});
 
-		// TODO: aggregate threads
-
-		function makeWebsocketPayload(event, data = undefined) {
-			const payload = { event, data };
-			const payloadString = JSON.stringify(payload);
-
-			console.debug('WS', payloadString);
-
-			return payloadString;
-		}
-
-		function sendWebsocketTchatMessageText(value) {
-			const websocketPayload = makeWebsocketPayload('tchat::command', value);
-			websocket.send(websocketPayload);
-		}
-
-		function handleWebsocketTchatMessage(message) {
+		wrapper.onMessage(message => {
 			tchatStore.messages.push(message);
-		}
-
-		websocket.addEventListener('message', function(websocketMessage) {
-			console.debug('WS >', websocketMessage);
-
-			const websocketMessageData = JSON.parse(websocketMessage.data);
-
-			if (websocketMessageData.event === 'tchat::message:created')
-				return handleWebsocketTchatMessage(websocketMessageData.data);
+			testMessages.push(message);
+			const threadTest = aggregateMessagesToThreads(testMessages);
+			console.log({ threadTest });
 		});
 	};
 
 	document.addEventListener('alpine:init', startup);
+	Alpine.start();
 
 </script>
 
