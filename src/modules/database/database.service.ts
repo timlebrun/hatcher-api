@@ -7,7 +7,6 @@ const { DATABASE_URL } = process.env;
 @Injectable()
 export class HatcherDatabaseService extends PrismaClient
 	implements OnModuleInit, BeforeApplicationShutdown {
-
 	public readonly subscriber = createPostgresSubscriber({
 		connectionString: DATABASE_URL,
 	});
