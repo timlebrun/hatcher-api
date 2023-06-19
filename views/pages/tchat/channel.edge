@@ -6,46 +6,46 @@
 @super
 
 <script src="/assets/script.js"></script>
-<script src="/assets/tchat/channel.js"></script>
+<script src="/assets/tchat.js"></script>
 
 <style>
-	.pre { white-space: pre; }
+	.pre {
+		white-space: pre;
+	}
 </style>
 @end
 
 @section('body')
 
-<div id="hatcher-sound" class="container min-vh-100 position-relative" x-data>
-	<h1 class="display-1">🪓 Tchat</h1>
-
-	<p class="text-white" x-text="$store.tchat.messages.length"></p>
+<div id="hatcher-tchat" class="container position-relative" x-data>
+	<h1 class="display-1">Tchat</h1>
 
 	<div id="tchat-messages">
 		<ol>
-			<template x-for="message in $store.tchat.messages">
+			<template x-for="thread in aggregateMessagesToThreads($store.tchat.messages)">
 
 				<li class="tchat-message tchat-message-text text-white d-flex mb-3">
 					<div class="me-3">
 						<img src="" alt="" class="rounded-circle bg-light" style="height: 80px; width: 80px;">
 					</div>
 					<div class="d-flex flex-column">
-						<div class="tchat-message-content bg-primary d-inline-block py-2 px-3 rounded mw-60 mb-1" x-data="{ paragraphs: message.content.text.split('\n\n') }">
-							<template x-for="paragraph in paragraphs">
-								<p x-data="{ haha: paragraph.replace('\n', '<br />') }" x-html="haha"></p>
-							</template>
-						</div>
+						<template x-for="message in thread.messages">
+							<div class="tchat-message-content bg-primary d-inline-block py-2 px-3 rounded mw-60 mb-1"
+								x-data="{ paragraphs: message.content.text.split('\n\n') }">
+								<template x-for="paragraph in paragraphs">
+									<p x-data="{ haha: paragraph.replace('\n', '<br />') }" x-html="haha"></p>
+								</template>
+							</div>
+						</template>
 
-						<div class="tchat-message-content bg-primary d-inline-block py-2 px-3 rounded mw-60">
-							<p>Deuxième message pas longtemps après</p>
-						</div>
-
-						<time class="opacity-75 text-small" x-data="{ date: dateFormatter.format(new Date(message.createdAt)) }" x-text="date">mercredi à 20h30</time>
+						<time class="opacity-75 text-small"
+							x-data="{ date: dateFormatter.format(new Date(thread.date)) }" x-text="date"></time>
 					</div>
 				</li>
 
 			</template>
 
-			<li class="tchat-message tchat-message-text text-white d-flex justify-content-end">
+			{{-- <li class="tchat-message tchat-message-text text-white d-flex justify-content-end">
 				<div class="d-flex flex-column align-items-end">
 					<div class="tchat-message-content bg-light text-black d-inline-block py-2 px-3 rounded mw-60 mb-1">
 						<p>Bonjour c'est une phrase haha super</p>
@@ -62,7 +62,7 @@
 					<time class="opacity-75 text-small">mercredi à 20h30</time>
 				</div>
 
-			</li>
+			</li> --}}
 		</ol>
 	</div>
 
@@ -73,6 +73,11 @@
 			<button class="btn btn-outline-secondary" type="button">Button</button>
 		</div>
 	</div>
+</div>
+
+<div id="hatcher-tchat-stats" style="position: fixed; top: 0; left: 0; color: white;">
+	<p x-data x-text="$store.tchat.scroll"></p>
+	<p x-data x-text="$store.tchat.scrollBottom ? 'BOTTOM' : ''"></p>
 </div>
 
 <style>
@@ -90,35 +95,57 @@
 <script>
 	const url = new URL(window.location);
 
+	const tchatMainElement = document.getElementById('hatcher-tchat');
 	const tchatInputElement = document.getElementById('tchat-input');
 
-	const browserLanguage = 'fr-FR';
-	// const browserLanguage = navigator.languages[0] || navigator.language;
-	// console.log({ browserLanguage });
+	const authClient = new HatcherAuthClient('/api/auth', 'test');
 
+	HatcherTchatClient.registerAuth(authClient);
+	const tchatClient = new HatcherTchatClient(`ws://${url.host}/api/tchat`);
+
+	const browserLanguage = guessIntlLanguage();
 	const relativeTimeFormatter = new Intl.RelativeTimeFormat(browserLanguage, { style: 'short' });
 	const dateFormatter = new Intl.DateTimeFormat(browserLanguage, { weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: 'numeric' });
-
 	Object.assign(window, { relativeTimeFormatter, dateFormatter });
 
-	const socket = new ReconnectingWebSocket(`ws://${url.host}/api/tchat`);
-	const wrapper = new HatcherTchatSocketWrapper(socket);
+	Alpine.store('tchat', {
+		init() {},
+		messages: [],
+		scroll: window.scrollY,
+		scrollBottom: (window.innerHeight + window.scrollY) >= document.body.offsetHeight,
+	});
 
-	const testMessages = [];
+	const tchatStore = Alpine.store('tchat');
+	Object.assign(window, { tchatStore });
+
+	function handleScrollUpdate() {
+		tchatStore.scroll = window.scrollY;
+		tchatStore.scrollBottom = (window.innerHeight + window.scrollY) >= document.body.offsetHeight;
+		console.log(window.innerHeight, document.body.offsetHeight);
+	}
+
+	window.addEventListener('scroll', () => handleScrollUpdate());
+
+
+	addEventListener("resize", (event) => console.log("resize" ,event));
 
 	async function startup() {
+		await authClient.login('tim', 'bonjour.');
+
+		console.log(authClient.hasSession());
+
 		tchatInputElement.setAttribute('style', `height: ${tchatInputElement.scrollHeight}px;overflow-y:hidden`);
 		tchatInputElement.addEventListener('input', function() {
 			this.style.height = 0;
 			this.style.height = this.scrollHeight + "px";
 		});
 
-		Alpine.store('tchat', {
-			init() {},
-			messages: [],
-		});
+		console.log('EUH');
 
-		const tchatStore = Alpine.store('tchat');
+		// document.addEventListener('scroll', () => {
+		// 	tchatStore.scroll = tchatMainElement.scrollTop;
+		// 	console.log({ scroll:  tchatMainElement.scrollTop })
+		// });
 
 		tchatInputElement.addEventListener('keypress', (event) => {
 			if (event.key !== "Enter") return;
@@ -134,25 +161,35 @@
 			event.target.style.height = 0;
 			event.target.style.height = (event.target.scrollHeight) + "px";
 
-			wrapper.sendCommand(event.target.value);
+			tchatClient.sendCommand(event.target.value);
 
 			event.target.value = '';
 
 			event.target.readOnly = false;
 			event.target.disabled = false;
+
 		});
 
-		wrapper.onMessage(message => {
+		tchatClient.onMessage(message => {
 			tchatStore.messages.push(message);
-			testMessages.push(message);
-			const threadTest = aggregateMessagesToThreads(testMessages);
-			console.log({ threadTest });
+
+			if (tchatStore.scrollBottom) window.scrollTo(0, document.body.scrollHeight);
 		});
+
+		const messages = await tchatClient.fetchMessages();
+		tchatStore.messages.push(...messages);
+
+		console.log('WSH');
+		// window.scrollTo(0, document.body.scrollHeight);
+		handleScrollUpdate();
+
+		await tchatClient.connect();
 	};
 
 	document.addEventListener('alpine:init', startup);
-	Alpine.start();
 
+	// Start alpine when everything is loaded
+	window.addEventListener('DOMContentLoaded', () => Alpine.start());
 </script>
 
 @end
