@@ -9,8 +9,10 @@ if (!action) {
 	process.exit(1);
 }
 
+// TODO: rimraf assets content before building
+// TODO: add more console feedback
+
 const assetFilePaths = await glob('./assets/**/*.*');
-console.debug(assetFilePaths);
 
 const esbuildContext = await esbuild.context({
 	entryPoints: assetFilePaths,
