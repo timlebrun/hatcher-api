@@ -1,17 +1,17 @@
 import { NestFactory } from '@nestjs/core';
 
 import { NestExpressApplication } from '@nestjs/platform-express';
-import { WsAdapter } from '@nestjs/platform-ws';
 
 import { Edge, EdgeOptions } from 'edge.js';
 import { join } from 'path';
 
+import { HatcherAuthWebsocketAdapter } from './modules/auth';
 import { Hatcher } from './hatcher';
 
 (async function() {
 	const app = await NestFactory.create<NestExpressApplication>(Hatcher);
 
-	app.useWebSocketAdapter(new WsAdapter(app));
+	app.useWebSocketAdapter(new HatcherAuthWebsocketAdapter(app));
 
 	app.useStaticAssets(join(__dirname, '..', 'public'));
 	app.setBaseViewsDir(join(__dirname, '..', 'views'));
