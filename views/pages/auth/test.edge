@@ -1,0 +1,123 @@
+@layout('layout/base')
+
+@set('title', '🪓 Hatcher - Auth (Test)')
+
+@section('head')
+@super
+
+<script src="/assets/scripts/common.js"></script>
+<script src="/assets/scripts/auth.js"></script>
+
+<style>
+    * {
+        tab-size: 3em;
+    }
+</style>
+@end
+
+@section('main')
+
+<div id="hatcher-tchat" class="container position-relative" x-data>
+    <h1 class="display-1 ">Auth Test</h1>
+
+
+    <template x-if="$store.auth.hasSession === false">
+        <div id="hatcher-auth-login">
+            <form id="hatcher-auth-login-form" action="#" onsubmit="handleLoginClick(event)">
+                <input name="username" class="form-control form-control-lg mb-1" type="text">
+                <input name="password" class="form-control form-control-lg mb-1" type="password">
+                <button type="submit" class="btn btn-lg btn-primary mb-1">Confirm identity</button>
+            </form>
+        </div>
+    </template>
+
+    <template x-if="$store.auth.hasSession === true">
+
+        <template x-if="$store.auth.currentUser">
+
+            <div class="card" style="width: 18rem;">
+                <div class="card-body">
+                    <h5 class="card-title">Card title</h5>
+                    <p class="card-text">Logged in as <span class="bold" x-text="$store.auth.currentUser.displayName"></span></p>
+                </div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">An item</li>
+                    <li class="list-group-item">A second item</li>
+                    <li class="list-group-item">A third item</li>
+                </ul>
+                <div class="card-body">
+                    <a href="#" class="card-link">Card link</a>
+                    <a href="#" class="card-link">Another link</a>
+                </div>
+            </div>
+
+            <p class="display-4 "></p>
+
+            <pre x-text="JSON.stringify($store.auth.currentUser, null, '\t')"></pre>
+
+            <a id="hatcher-auth-info-logout" class="btn btn-lg btn-primary mb-1"
+                onclick="handleLogoutClick(event)">Logout</button>
+</div>
+</template>
+</template>
+
+</div>
+<script>
+    const url = new URL(window.location);
+
+	Alpine.store('auth', {
+		init() {},
+        hasSession: null,
+        currentUser: null,
+	});
+
+	const authStore = Alpine.store('auth');
+	Object.assign(window, { authStore });
+
+	const authClient = new HatcherAuthClient('/api/auth', 'test');
+
+    async function syncStore() {
+        authStore.hasSession = authClient.hasSession();
+
+        authStore.currentUser = authStore.hasSession
+            ? await authClient.fetchCurrentUser()
+            : null;
+    }
+
+    authClient.onChange(async () => syncStore());
+
+    async function handleLoginClick(event) {
+        console.debug('LOGIN SUBMIT');
+        event.preventDefault();
+
+        if (authClient.hasSession()) return;
+
+        const formData = new FormData(event.target);
+        console.log('LOGIN DATA', formData);
+
+        const loginResponse = await authClient.login(
+            formData.get('username'),
+            formData.get('password'),
+        );
+
+        console.log('LOGIN SUCCESS', loginResponse);
+    }
+
+    async function handleLogoutClick(event) {
+        console.debug('LOGOUT CLICK');
+        event.preventDefault();
+
+        const logoutResponse = await authClient.logout();
+        console.debug('LOGOUT SUCCESS', logoutResponse);
+
+    }
+
+	document.addEventListener('alpine:init', () => {
+        syncStore();
+    });
+
+	// Start alpine when everything is loaded
+	window.addEventListener('DOMContentLoaded', () => Alpine.start());
+</script>
+
+@end
