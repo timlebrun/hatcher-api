@@ -2,5 +2,11 @@
   "singleQuote": true,
   "trailingComma": "all",
   "printWidth": 96,
-  "useTabs": true
+  "useTabs": true,
+  "overrides": [
+    {
+      "files": "*.edge",
+      "options": { "parser": "html" }
+    }
+  ]
 }
