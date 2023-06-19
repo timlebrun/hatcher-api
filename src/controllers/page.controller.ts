@@ -10,7 +10,11 @@ import { HatcherSoundService } from 'src/modules/sound/sound.service';
  */
 @Controller('pages')
 export class HatcherPageController {
-	constructor(private readonly sound: HatcherSoundService) {}
+	@Get('test')
+	@Render('pages/test')
+	public async getTestPage() {
+		return {};
+	}
 
 	@Get('sound/admin')
 	@Render('pages/sound/admin')

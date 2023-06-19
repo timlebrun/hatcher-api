@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    @section('head')
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <link href="/style.css" rel="stylesheet">
+    {{--
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.9.1/font/bootstrap-icons.css" rel="stylesheet"> --}}
+
+    <style>
+        .text-small {
+            font-size: .9em;
+        }
+    </style>
+
+    <title>{{ title }}</title>
+
+    <link rel="stylesheet" href="/assets/styles.css">
+
+    @end
+</head>
+
+<body>
+    <header class="navbar navbar-expand-lg navbar-light bg-light py-4">
+        @section('header')
+            <div class="container">
+
+                <div class="row">
+                    <div class="col-md"></div>
+                    <a class="navbar-brand font-bold" href="/">🪓 HATCHER</a>
+                </div>
+
+            </div>
+        @end
+    </header>
+
+    <main>
+        @section('main')
+        <div class="container">
+            <p>Hello world !</p>
+        </div>
+        @end
+    </main>
+
+    <script src="/bootstrap.js"></script>
+</body>
+
+</html>
