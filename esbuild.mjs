@@ -3,26 +3,34 @@ import { sassPlugin } from 'esbuild-sass-plugin';
 
 import { rimraf } from 'rimraf';
 import { glob } from 'glob';
+import { dirname, resolve } from 'path';
 
 const [nodePath, scriptPath, action] = process.argv;
+
+const projectPath = dirname(scriptPath);
+
+const assetPath = resolve(projectPath, 'assets');
+const publicPath = resolve(projectPath, 'public');
 
 if (!action) {
 	console.log('action is required');
 	process.exit(1);
 }
 
-// TODO: rimraf assets content before building
 // TODO: add more console feedback
 
-await rimraf('./assets/*');
-const assetFilePaths = await glob('./assets/**/*.*');
+// Deletes everything in asset dir
+await rimraf(`${publicPath}/assets/**/*`, { glob: true });
+
+// Get all files that should be bundled
+const assetFilePaths = await glob(`${assetPath}/**/*.*`);
 
 const esbuildContext = await esbuild.context({
+	plugins: [sassPlugin()],
 	entryPoints: assetFilePaths,
 	target: ['chrome58', 'edge18', 'firefox57', 'safari11'],
-	bundle: true,
 	outdir: './public/assets',
-	plugins: [sassPlugin()],
+	bundle: true,
 });
 
 if (action === 'build') {
