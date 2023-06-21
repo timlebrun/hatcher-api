@@ -1,4 +1,4 @@
-export class HatcherAuthClient {
+export class HatcherAuthState {
 
     private storageCache: any = null;
 
@@ -37,7 +37,7 @@ export class HatcherAuthClient {
     public async resolveAccessToken() {
         if (!this.hasSession()) return null;
 
-        const currentTimestamp = HatcherAuthClient.getTimestamp();
+        const currentTimestamp = HatcherAuthState.getTimestamp();
 
         let accessToken = this.storageGet('access_token');
         let accessExpiresAt = this.storageGet<number>('access_expires_at');
@@ -162,7 +162,3 @@ export class HatcherAuthClient {
         return Math.floor(date.getTime() / 1000);
     }
 }
-
-Object.assign(window, {
-	HatcherAuthClient,
-});

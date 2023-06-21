@@ -30,6 +30,11 @@ const esbuildContext = await esbuild.context({
 	entryPoints: assetFilePaths,
 	target: ['chrome58', 'edge18', 'firefox57', 'safari11'],
 	outdir: './public/assets',
+	loader: {
+		'.woff': 'file',
+		'.woff2': 'file',
+	},
+	sourcemap: true,
 	minify: true,
 	bundle: true,
 });
