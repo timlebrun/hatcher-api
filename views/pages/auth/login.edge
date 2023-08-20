@@ -65,26 +65,9 @@
 <script>
     const url = new URL(window.location);
 
-	Alpine.store('auth', {
-		init() {},
-        hasSession: null,
-        currentUser: null,
-	});
-
 	const authStore = Alpine.store('auth');
-	Object.assign(window, { authStore });
 
-	const authClient = new HatcherAuthClient('/api/auth', 'test');
-
-    async function syncStore() {
-        authStore.hasSession = authClient.hasSession();
-
-        authStore.currentUser = authStore.hasSession
-            ? await authClient.fetchCurrentUser()
-            : null;
-    }
-
-    authClient.onChange(async () => syncStore());
+	const authClient = window.hatcher.auth;
 
     async function handleLoginClick(event) {
         console.debug('LOGIN SUBMIT');
@@ -102,22 +85,6 @@
 
         console.log('LOGIN SUCCESS', loginResponse);
     }
-
-    async function handleLogoutClick(event) {
-        console.debug('LOGOUT CLICK');
-        event.preventDefault();
-
-        const logoutResponse = await authClient.logout();
-        console.debug('LOGOUT SUCCESS', logoutResponse);
-
-    }
-
-	document.addEventListener('alpine:init', () => {
-        syncStore();
-    });
-
-	// Start alpine when everything is loaded
-	window.addEventListener('DOMContentLoaded', () => Alpine.start());
 </script>
 
 @end

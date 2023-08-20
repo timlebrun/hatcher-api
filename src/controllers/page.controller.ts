@@ -1,5 +1,4 @@
 import { Controller, Get, Render } from '@nestjs/common';
-import { HatcherSoundService } from 'src/modules/sound/sound.service';
 
 /**
  * This controller centralizes all pages exposed by the API
@@ -13,6 +12,12 @@ export class HatcherPageController {
 	@Get('test')
 	@Render('pages/test')
 	public async getTestPage() {
+		return {};
+	}
+
+	@Get('auth/login')
+	@Render('pages/auth/login')
+	public async getAuthLoginPage() {
 		return {};
 	}
 

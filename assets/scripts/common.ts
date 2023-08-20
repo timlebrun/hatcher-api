@@ -2,12 +2,12 @@ import ReconnectingWebSocket from 'reconnecting-websocket';
 import Alpine from 'alpinejs';
 
 import { createAlpineStore, guessIntlLanguage } from './helpers';
-import { HatcherAuthState } from './auth';
-
-import 'bootstrap';
+import { HatcherAuthManager } from './auth';
 import { HatcherRenderer } from './renderer';
 
-const authState = new HatcherAuthState('/api/auth', 'test');
+import 'bootstrap';
+
+const authManager = new HatcherAuthManager('/api/auth', 'test');
 
 const hatcherRenderer = new HatcherRenderer();
 
@@ -22,14 +22,19 @@ const alpineAuthStore = createAlpineStore<IHatcherAuthStoreData>('auth', {
 });
 
 async function syncStore() {
-	alpineAuthStore.hasSession = authState.hasSession();
+	alpineAuthStore.hasSession = authManager.hasSession();
 
 	alpineAuthStore.currentUser = alpineAuthStore.hasSession
-		? await authState.fetchCurrentUser()
+		? await authManager.fetchCurrentUser()
 		: null;
 }
 
-authState.onChange(async () => syncStore());
+authManager.onChange(async () => {
+	if (alpineAuthStore.hasSession !== authManager.hasSession())
+		window.location.reload();
+
+	syncStore()
+});
 
 hatcherRenderer.beforeBoot(() => {
 	syncStore();
@@ -40,6 +45,7 @@ hatcherRenderer.onBoot(() => {
 });
 
 const windowHatcherNamespace = {
+	auth: authManager,
 	renderer: hatcherRenderer,
 };
 

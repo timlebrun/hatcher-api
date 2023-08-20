@@ -1,4 +1,4 @@
-export class HatcherAuthState {
+export class HatcherAuthManager {
 
     private storageCache: any = null;
 
@@ -37,7 +37,7 @@ export class HatcherAuthState {
     public async resolveAccessToken() {
         if (!this.hasSession()) return null;
 
-        const currentTimestamp = HatcherAuthState.getTimestamp();
+        const currentTimestamp = HatcherAuthManager.getTimestamp();
 
         let accessToken = this.storageGet('access_token');
         let accessExpiresAt = this.storageGet<number>('access_expires_at');

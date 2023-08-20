@@ -1,0 +1,32 @@
+<div id="hatcher-auth" x-data>
+    <template x-if="$store.auth.hasSession && $store.auth.currentUser">
+        <div class="dropdown">
+            <a class="btn btn-dark bg-transparent dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+                aria-expanded="false">
+                <img src="" class="bg-light rounded-circle d-inline-block" style="height:2rem;width:2rem;" alt="">
+            </a>
+
+            <div class="dropdown-menu dropdown-menu-end" data-bs-theme="light">
+                <div class="dropdown-item">
+                    <span class="d-block fw-bold" x-text="$store.auth.currentUser.displayName">Tim Lebrun</span>
+                    {{--  <span class="d-block text-body text-opacity-50">@username</span>  --}}
+                </div>
+                <hr class="dropdown-divider">
+                <a class="dropdown-item" href="#">
+                    <i class="bi bi-gear-fill opacity-50 me-1"></i>
+                    Settings
+                </a>
+                <hr class="dropdown-divider">
+                <a class="dropdown-item" href="#" onclick="window.hatcher.auth.logout()">
+                    <i class="bi bi-box-arrow-left opacity-50 me-1"></i>
+                    Logout
+                </a>
+            </div>
+        </div>
+    </template>
+
+    <template x-if="!$store.auth.hasSession">
+        <a href="/pages/auth/test" class="btn btn-link">Login</a>
+    </template>
+
+</div>

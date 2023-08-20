@@ -1,9 +1,42 @@
-@layout('layout/html')
+@layout('layout/base')
 
 @set('title', '🪓 Hatcher')
 
-@section('body')
+@section('main')
+
+<section id="home">
     <div class="container">
-        <h1 class="display-1 align-middle">🪓 Hatcher</h1>
+        <div class="row">
+            <div class="col-sm-12 my-auto py-5">
+                <h1 class="display-1 align-middle text-uppercase text-center"
+                    style="font-family: mplus-rounded, sans-serif; font-weight: 800; letter-spacing: .15em;">
+                    🪓 Hatcher
+                </h1>
+            </div>
+        </div>
     </div>
+</section>
+
+<section id="blabla" class="bg-body-secondary">
+    <div class="container">
+
+        <div class="row bg-body-secondary">
+            <div class="col-sm-12 my-auto py-5">
+                Lorem ipsum dolor sit, amet consectetur adipisicing elit. Amet sunt repellat adipisci optio sint,
+                consequuntur cupiditate praesentium commodi magni aut sit totam placeat voluptate at illo molestias
+                porro ratione provident.
+            </div>
+
+        </div>
+    </div>
+
+</section>
+
+@end
+
+@section('scripts')
+@super
+
+
+  
 @end
